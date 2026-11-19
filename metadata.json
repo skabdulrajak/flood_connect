@@ -1,0 +1,6 @@
+{
+  "name": "FloodConnect",
+  "description": "Integrated flood monitoring, community reporting, and emergency response coordination platform for East Godavari district, Andhra Pradesh.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

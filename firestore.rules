@@ -1,0 +1,449 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // DEFAULT DENY
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // HELPER FUNCTIONS
+    // =========================================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'rajaksk319@gmail.com' &&
+         request.auth.token.email_verified == true)
+      );
+    }
+
+    function isRescueTeam() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'rescue_team';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 &&
+        id.matches('^[a-zA-Z0-9._-]+$');
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() > 0 && val.size() <= maxLen;
+    }
+
+    function isOptionalString(val, maxLen) {
+      return val == null || (val is string && val.size() <= maxLen);
+    }
+
+    function isOptionalList(val, maxItems) {
+      return val == null || (val is list && val.size() <= maxItems);
+    }
+
+    function isValidSeverity(val) {
+      return val in ['low', 'medium', 'high', 'critical'];
+    }
+
+    function isValidLanguage(val) {
+      return val in ['en', 'hi', 'te'];
+    }
+
+    function isValidCoord(lat, lng) {
+      return lat is number && lng is number &&
+        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    }
+
+    function isValidUserCreate(data, userId) {
+      return data.keys().hasAll(['id', 'email', 'full_name', 'role', 'preferred_language']) &&
+        data.keys().hasOnly([
+          'id', 'email', 'full_name', 'phone', 'role', 'district',
+          'locality', 'preferred_language', 'created_at', 'updated_at'
+        ]) &&
+        data.id == userId &&
+        isNonEmptyString(data.email, 254) &&
+        isNonEmptyString(data.full_name, 140) &&
+        isOptionalString(data.get('phone', null), 32) &&
+        isOptionalString(data.get('district', null), 120) &&
+        isOptionalString(data.get('locality', null), 120) &&
+        isValidLanguage(data.preferred_language) &&
+        (isAdmin() ? data.role in ['citizen', 'volunteer', 'rescue_team', 'admin']
+                   : data.role in ['citizen', 'volunteer']);
+    }
+
+    function isValidUserUpdate(newData, oldData, userId) {
+      return newData.keys().hasAll(['id', 'email', 'full_name', 'role', 'preferred_language']) &&
+        newData.keys().hasOnly([
+          'id', 'email', 'full_name', 'phone', 'role', 'district',
+          'locality', 'preferred_language', 'created_at', 'updated_at'
+        ]) &&
+        newData.id == userId &&
+        newData.id == oldData.id &&
+        isNonEmptyString(newData.email, 254) &&
+        isNonEmptyString(newData.full_name, 140) &&
+        isOptionalString(newData.get('phone', null), 32) &&
+        isOptionalString(newData.get('district', null), 120) &&
+        isOptionalString(newData.get('locality', null), 120) &&
+        isValidLanguage(newData.preferred_language) &&
+        (isAdmin()
+          ? newData.role in ['citizen', 'volunteer', 'rescue_team', 'admin']
+          : newData.role == oldData.role);
+    }
+
+    function isValidIncident(data) {
+      return data.keys().hasAll([
+          'incident_code', 'reporter_id', 'title', 'description',
+          'category', 'severity', 'status', 'locality', 'latitude', 'longitude'
+        ]) &&
+        data.keys().hasOnly([
+          'incident_code', 'reporter_id', 'title', 'description', 'category',
+          'severity', 'reviewed_priority', 'status', 'locality', 'location_text',
+          'latitude', 'longitude', 'photo_urls', 'info_origin', 'verification_note',
+          'ai_suggested', 'observed_at', 'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.incident_code, 64) &&
+        isNonEmptyString(data.reporter_id, 128) &&
+        isNonEmptyString(data.title, 180) &&
+        isNonEmptyString(data.description, 2000) &&
+        isNonEmptyString(data.category, 64) &&
+        isValidSeverity(data.severity) &&
+        data.status in ['pending_verification', 'verified', 'rejected', 'resolved'] &&
+        isNonEmptyString(data.locality, 120) &&
+        isOptionalString(data.get('location_text', null), 240) &&
+        isOptionalString(data.get('verification_note', null), 800) &&
+        isOptionalList(data.get('photo_urls', null), 5) &&
+        isValidCoord(data.latitude, data.longitude);
+    }
+
+    function isValidEmergencyRequest(data) {
+      return data.keys().hasAll([
+          'request_code', 'requester_id', 'people_count', 'severity', 'status', 'locality'
+        ]) &&
+        data.keys().hasOnly([
+          'request_code', 'requester_id', 'requester_name', 'contact_phone',
+          'people_count', 'children_count', 'elderly_count', 'is_trapped',
+          'medical_needs', 'accessibility_needs', 'description', 'severity',
+          'reviewed_priority', 'status', 'locality', 'location_text',
+          'latitude', 'longitude', 'assigned_team_id', 'assigned_responder_id',
+          'assigned_team_name', 'rescue_notes', 'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.request_code, 64) &&
+        isNonEmptyString(data.requester_id, 128) &&
+        data.people_count is int && data.people_count >= 1 && data.people_count <= 500 &&
+        isValidSeverity(data.severity) &&
+        data.status in ['pending', 'verified', 'assigned', 'en_route', 'on_site', 'in_progress', 'resolved', 'cancelled'] &&
+        isNonEmptyString(data.locality, 120) &&
+        isOptionalString(data.get('requester_name', null), 140) &&
+        isOptionalString(data.get('contact_phone', null), 32) &&
+        isOptionalString(data.get('description', null), 2000) &&
+        isOptionalString(data.get('medical_needs', null), 500) &&
+        isOptionalString(data.get('accessibility_needs', null), 500);
+    }
+
+    function isValidShelter(data) {
+      return data.keys().hasAll([
+          'name', 'locality', 'capacity', 'current_occupancy', 'status', 'latitude', 'longitude'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'address', 'locality', 'capacity', 'current_occupancy',
+          'status', 'latitude', 'longitude', 'amenities', 'contact_officer_name',
+          'contact_phone', 'info_origin', 'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.name, 160) &&
+        isNonEmptyString(data.locality, 120) &&
+        data.capacity is int && data.capacity >= 1 && data.capacity <= 50000 &&
+        data.current_occupancy is int && data.current_occupancy >= 0 && data.current_occupancy <= data.capacity &&
+        data.status in ['open', 'near_capacity', 'full', 'closed'] &&
+        isOptionalList(data.get('amenities', null), 20) &&
+        isValidCoord(data.latitude, data.longitude);
+    }
+
+    function isValidAlert(data) {
+      return data.keys().hasAll(['title', 'message', 'severity', 'affected_area', 'status']) &&
+        data.keys().hasOnly([
+          'title', 'message', 'severity', 'affected_area', 'source_name',
+          'info_origin', 'status', 'issued_by', 'published_at', 'expires_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.title, 180) &&
+        isNonEmptyString(data.message, 2000) &&
+        isValidSeverity(data.severity) &&
+        isNonEmptyString(data.affected_area, 160) &&
+        data.status in ['active', 'expired'];
+    }
+
+    function isValidRescueTeam(data) {
+      return data.keys().hasAll(['name', 'code', 'status', 'base_locality']) &&
+        data.keys().hasOnly([
+          'name', 'code', 'status', 'base_locality', 'leader_user_id',
+          'leader_name', 'member_count', 'capabilities', 'contact_channel',
+          'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.name, 140) &&
+        isNonEmptyString(data.code, 40) &&
+        data.status in ['available', 'deployed', 'standby', 'offline'] &&
+        isOptionalList(data.get('capabilities', null), 20) &&
+        isNonEmptyString(data.base_locality, 120);
+    }
+
+    function isValidVolunteer(data) {
+      return data.keys().hasAll(['user_id', 'full_name', 'approval_status', 'availability_status']) &&
+        data.keys().hasOnly([
+          'user_id', 'full_name', 'email', 'phone', 'locality',
+          'approval_status', 'availability_status', 'skills', 'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.user_id, 128) &&
+        isNonEmptyString(data.full_name, 140) &&
+        data.approval_status in ['pending', 'approved', 'rejected'] &&
+        data.availability_status in ['available', 'on_task', 'unavailable'] &&
+        isOptionalList(data.get('skills', null), 20);
+    }
+
+    function isValidVolunteerTask(data) {
+      return data.keys().hasAll(['title', 'locality', 'priority', 'status']) &&
+        data.keys().hasOnly([
+          'title', 'description', 'locality', 'priority', 'status',
+          'assigned_volunteer_id', 'assigned_user_id', 'assigned_user_name',
+          'progress_note', 'created_by', 'created_at', 'updated_at'
+        ]) &&
+        isNonEmptyString(data.title, 180) &&
+        isNonEmptyString(data.locality, 120) &&
+        isValidSeverity(data.priority) &&
+        data.status in ['assigned', 'accepted', 'in_progress', 'completed', 'declined'];
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['user_id', 'title', 'message', 'category', 'is_read']) &&
+        data.keys().hasOnly([
+          'user_id', 'title', 'message', 'category', 'is_read', 'related_id', 'created_at'
+        ]) &&
+        isNonEmptyString(data.user_id, 128) &&
+        isNonEmptyString(data.title, 160) &&
+        isNonEmptyString(data.message, 800) &&
+        isNonEmptyString(data.category, 64) &&
+        data.is_read is bool;
+    }
+
+    function isValidOfficialInfo(data) {
+      return data.keys().hasAll(['category', 'title', 'summary', 'source_name', 'published_at']) &&
+        data.keys().hasOnly([
+          'category', 'title', 'summary', 'value_reading', 'source_name',
+          'area', 'published_by', 'published_at', 'updated_at'
+        ]) &&
+        data.category in ['rainfall', 'forecast', 'river_level', 'advisory'] &&
+        isNonEmptyString(data.title, 180) &&
+        isNonEmptyString(data.summary, 2000) &&
+        isNonEmptyString(data.source_name, 160);
+    }
+
+    function isValidAuditEntry(data) {
+      return data.keys().hasAll(['kind', 'target_id', 'to_status', 'changed_by']) &&
+        data.keys().hasOnly([
+          'kind', 'target_id', 'target_code', 'from_status', 'to_status',
+          'changed_by', 'changed_by_name', 'note', 'created_at'
+        ]) &&
+        data.kind in ['incident', 'rescue'] &&
+        isNonEmptyString(data.target_id, 128) &&
+        isNonEmptyString(data.to_status, 64) &&
+        isNonEmptyString(data.changed_by, 128);
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['role', 'text', 'created_at']) &&
+        data.keys().hasOnly(['role', 'text', 'model', 'created_at']) &&
+        data.role in ['user', 'model'] &&
+        isNonEmptyString(data.text, 8000) &&
+        isNonEmptyString(data.created_at, 64);
+    }
+
+    // =========================================================================
+    // COLLECTION RULES
+    // =========================================================================
+
+    // Users & per-user Gemini chat history
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && (isOwner(userId) || isAdmin()) &&
+        isValidUserCreate(request.resource.data, userId);
+      allow update: if isValidId(userId) && (isOwner(userId) || isAdmin()) &&
+        isValidUserUpdate(request.resource.data, resource.data, userId);
+      allow delete: if isAdmin();
+
+      match /chat_messages/{messageId} {
+        allow read: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(messageId) &&
+          isOwner(userId) && isValidChatMessage(request.resource.data);
+        allow delete: if isValidId(userId) && isOwner(userId);
+        allow update: if false;
+      }
+    }
+
+    // Admin grant list
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list, create, update, delete: if isAdmin();
+    }
+
+    // Flood incidents
+    match /incidents/{incidentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.status == 'verified' ||
+        resource.data.reporter_id == request.auth.uid
+      );
+      allow create: if isValidId(incidentId) && isAuthenticated() &&
+        isValidIncident(request.resource.data) && (
+          isAdmin() || (
+            request.resource.data.reporter_id == request.auth.uid &&
+            request.resource.data.status == 'pending_verification'
+          )
+        );
+      allow update: if isValidId(incidentId) && isAdmin() &&
+        isValidIncident(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Emergency requests (strict PII isolation)
+    match /emergency_requests/{requestId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.requester_id == request.auth.uid ||
+        resource.data.assigned_responder_id == request.auth.uid
+      );
+      allow create: if isValidId(requestId) && isAuthenticated() &&
+        isValidEmergencyRequest(request.resource.data) && (
+          isAdmin() || (
+            request.resource.data.requester_id == request.auth.uid &&
+            request.resource.data.status == 'pending'
+          )
+        );
+      allow update: if isValidId(requestId) && isAuthenticated() &&
+        isValidEmergencyRequest(request.resource.data) && (
+          isAdmin() ||
+          (resource.data.requester_id == request.auth.uid &&
+            request.resource.data.requester_id == resource.data.requester_id &&
+            request.resource.data.status == 'cancelled') ||
+          (resource.data.assigned_responder_id == request.auth.uid &&
+            request.resource.data.requester_id == resource.data.requester_id &&
+            request.resource.data.assigned_responder_id == resource.data.assigned_responder_id)
+        );
+      allow delete: if isAdmin();
+    }
+
+    // Shelters
+    match /shelters/{shelterId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isValidId(shelterId) && isAdmin() &&
+        isValidShelter(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Alerts
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isValidId(alertId) && isAdmin() &&
+        isValidAlert(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Rescue teams
+    match /rescue_teams/{teamId} {
+      allow read: if isAuthenticated();
+      allow create: if isValidId(teamId) && isAdmin() &&
+        isValidRescueTeam(request.resource.data);
+      allow update: if isValidId(teamId) && isValidRescueTeam(request.resource.data) && (
+        isAdmin() || (isAuthenticated() && resource.data.leader_user_id == request.auth.uid)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Volunteers
+    match /volunteers/{volunteerId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || resource.data.user_id == request.auth.uid
+      );
+      allow create: if isValidId(volunteerId) && isAuthenticated() &&
+        isValidVolunteer(request.resource.data) && (
+          isAdmin() || (
+            request.resource.data.user_id == request.auth.uid &&
+            request.resource.data.approval_status == 'pending'
+          )
+        );
+      allow update: if isValidId(volunteerId) && isAuthenticated() &&
+        isValidVolunteer(request.resource.data) && (
+          isAdmin() || (
+            resource.data.user_id == request.auth.uid &&
+            request.resource.data.user_id == resource.data.user_id &&
+            request.resource.data.approval_status == resource.data.approval_status
+          )
+        );
+      allow delete: if isAdmin();
+    }
+
+    // Volunteer tasks
+    match /volunteer_tasks/{taskId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || resource.data.assigned_user_id == request.auth.uid
+      );
+      allow create: if isValidId(taskId) && isAdmin() &&
+        isValidVolunteerTask(request.resource.data);
+      allow update: if isValidId(taskId) && isValidVolunteerTask(request.resource.data) && (
+        isAdmin() || (
+          isAuthenticated() &&
+          resource.data.assigned_user_id == request.auth.uid &&
+          request.resource.data.assigned_user_id == resource.data.assigned_user_id
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || resource.data.user_id == request.auth.uid
+      );
+      allow create: if isValidId(notificationId) && isAuthenticated() &&
+        isValidNotification(request.resource.data) && (
+          isAdmin() || isRescueTeam() || request.resource.data.user_id == request.auth.uid
+        );
+      allow update: if isValidId(notificationId) && isAuthenticated() &&
+        isValidNotification(request.resource.data) && (
+          isAdmin() || (
+            resource.data.user_id == request.auth.uid &&
+            request.resource.data.user_id == resource.data.user_id
+          )
+        );
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.user_id == request.auth.uid);
+    }
+
+    // Official Hydro/Weather Info
+    match /official_info/{entryId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isValidId(entryId) && isAdmin() &&
+        isValidOfficialInfo(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Audit History (append-only)
+    match /audit_history/{entryId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || resource.data.changed_by == request.auth.uid
+      );
+      allow create: if isValidId(entryId) && isAuthenticated() &&
+        isValidAuditEntry(request.resource.data) &&
+        request.resource.data.changed_by == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

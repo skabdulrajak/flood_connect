@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Plus Jakarta Sans", "Noto Sans Devanagari", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Public Sans", "Noto Sans Devanagari", "Noto Sans Telugu", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-navy-950: #071930;
+  --color-navy-900: #0B2545;
+  --color-navy-800: #13315C;
+  --color-navy-700: #1D4273;
+  --color-teal-700: #0E857D;
+  --color-teal-600: #13A89E;
+  --color-teal-50: #ECFAF8;
+  --color-emergency-700: #C06310;
+  --color-emergency-600: #D97316;
+  --color-emergency-500: #F28C28;
+  --color-emergency-50: #FEF5EC;
+  --color-surface-canvas: #F4F6F8;
+  --color-surface-card: #FFFFFF;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: #0B2545;
+    background-color: #F4F6F8;
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
+
+  /* Language-specific script typography and comfortable line heights */
+  html[lang="hi"] {
+    font-family: "Noto Sans Devanagari", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+
+  html[lang="hi"] h1,
+  html[lang="hi"] h2,
+  html[lang="hi"] h3,
+  html[lang="hi"] h4 {
+    font-family: "Noto Sans Devanagari", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.4;
+  }
+
+  html[lang="te"] {
+    font-family: "Noto Sans Telugu", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.68;
+  }
+
+  html[lang="te"] h1,
+  html[lang="te"] h2,
+  html[lang="te"] h3,
+  html[lang="te"] h4 {
+    font-family: "Noto Sans Telugu", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.45;
+  }
+
+  body {
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2.5px solid #13A89E;
+    outline-offset: 2px;
+  }
+
+  /* High-contrast focus ring when focused inside dark navy surfaces */
+  .bg-\[\#0B2545\] :focus-visible {
+    outline-color: #F28C28;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accessible skip-to-main-content link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0.75rem;
+  z-index: 60;
+  border-radius: 0.375rem;
+  background-color: #0B2545;
+  color: #FFFFFF;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(11, 37, 69, 0.25);
+}
+
+.skip-link:focus {
+  left: 0.75rem;
+}

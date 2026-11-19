@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FloodConnect">
+  <rect width="512" height="512" rx="96" fill="#0B2545" />
+  <path
+    d="M256 68L410 132V256C410 356 343 434 256 462C169 434 102 356 102 256V132L256 68Z"
+    fill="#13315C"
+    stroke="#13A89E"
+    stroke-width="18"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M150 278C178 250 208 250 236 278C264 306 294 306 322 278C336 264 350 258 362 258"
+    fill="none"
+    stroke="#13A89E"
+    stroke-width="24"
+    stroke-linecap="round"
+  />
+  <path
+    d="M150 338C178 310 208 310 236 338C264 366 294 366 322 338C336 324 350 318 362 318"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="22"
+    stroke-linecap="round"
+  />
+  <circle cx="256" cy="182" r="34" fill="#F28C28" />
+  <circle cx="256" cy="182" r="14" fill="#FFFFFF" />
+</svg>

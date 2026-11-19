@@ -1,0 +1,291 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated FloodConnect user profile with role and preferred language.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "full_name": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["citizen", "volunteer", "rescue_team", "admin"] },
+        "district": { "type": "string" },
+        "locality": { "type": "string" },
+        "preferred_language": { "type": "string", "enum": ["en", "hi", "te"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "full_name", "role", "preferred_language"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Explicit admin authorization document keyed by Firebase UID.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "granted_by": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    },
+    "FloodIncident": {
+      "title": "FloodIncident",
+      "description": "Citizen or field-reported flood point observation in East Godavari.",
+      "type": "object",
+      "properties": {
+        "incident_code": { "type": "string" },
+        "reporter_id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "reviewed_priority": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending_verification", "verified", "rejected", "resolved"] },
+        "locality": { "type": "string" },
+        "location_text": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "photo_urls": { "type": "array", "items": { "type": "string" } },
+        "info_origin": { "type": "string" },
+        "verification_note": { "type": "string" },
+        "observed_at": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["incident_code", "reporter_id", "title", "description", "category", "severity", "status", "locality", "latitude", "longitude"]
+    },
+    "EmergencyRequest": {
+      "title": "EmergencyRequest",
+      "description": "Private emergency rescue request with requester contact PII protected.",
+      "type": "object",
+      "properties": {
+        "request_code": { "type": "string" },
+        "requester_id": { "type": "string" },
+        "requester_name": { "type": "string" },
+        "contact_phone": { "type": "string" },
+        "people_count": { "type": "integer" },
+        "children_count": { "type": "integer" },
+        "elderly_count": { "type": "integer" },
+        "is_trapped": { "type": "boolean" },
+        "medical_needs": { "type": "string" },
+        "accessibility_needs": { "type": "string" },
+        "description": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "reviewed_priority": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "verified", "assigned", "en_route", "on_site", "in_progress", "resolved", "cancelled"] },
+        "locality": { "type": "string" },
+        "location_text": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "assigned_team_id": { "type": "string" },
+        "assigned_responder_id": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["request_code", "requester_id", "people_count", "severity", "status", "locality"]
+    },
+    "ReliefShelter": {
+      "title": "ReliefShelter",
+      "description": "Relief shelter capacity, facilities, and GPS coordinates.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "locality": { "type": "string" },
+        "capacity": { "type": "integer" },
+        "current_occupancy": { "type": "integer" },
+        "status": { "type": "string", "enum": ["open", "near_capacity", "full", "closed"] },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "amenities": { "type": "array", "items": { "type": "string" } },
+        "contact_officer_name": { "type": "string" },
+        "info_origin": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["name", "locality", "capacity", "current_occupancy", "status", "latitude", "longitude"]
+    },
+    "FloodAlert": {
+      "title": "FloodAlert",
+      "description": "Admin-issued or official flood alert.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "affected_area": { "type": "string" },
+        "source_name": { "type": "string" },
+        "info_origin": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "expired"] },
+        "issued_by": { "type": "string" },
+        "published_at": { "type": "string" },
+        "expires_at": { "type": "string" }
+      },
+      "required": ["title", "message", "severity", "affected_area", "status"]
+    },
+    "RescueTeam": {
+      "title": "RescueTeam",
+      "description": "Rescue team unit readiness and roster metadata.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "deployed", "standby", "offline"] },
+        "base_locality": { "type": "string" },
+        "leader_user_id": { "type": "string" },
+        "member_count": { "type": "integer" },
+        "capabilities": { "type": "array", "items": { "type": "string" } },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["name", "code", "status", "base_locality"]
+    },
+    "VolunteerRecord": {
+      "title": "VolunteerRecord",
+      "description": "Volunteer onboarding and field availability record.",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "full_name": { "type": "string" },
+        "email": { "type": "string" },
+        "locality": { "type": "string" },
+        "approval_status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "availability_status": { "type": "string", "enum": ["available", "on_task", "unavailable"] },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["user_id", "full_name", "approval_status", "availability_status"]
+    },
+    "VolunteerTask": {
+      "title": "VolunteerTask",
+      "description": "Field support task assigned to an approved volunteer.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "locality": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "status": { "type": "string", "enum": ["assigned", "accepted", "in_progress", "completed", "declined"] },
+        "assigned_user_id": { "type": "string" },
+        "progress_note": { "type": "string" },
+        "created_by": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["title", "locality", "priority", "status"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "Real-time notification scoped to a specific user.",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string" },
+        "is_read": { "type": "boolean" },
+        "related_id": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id", "title", "message", "category", "is_read"]
+    },
+    "OfficialInfoEntry": {
+      "title": "OfficialInfoEntry",
+      "description": "Admin-published hydrological, rainfall, or river level update.",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string", "enum": ["rainfall", "forecast", "river_level", "advisory"] },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "value_reading": { "type": "string" },
+        "source_name": { "type": "string" },
+        "area": { "type": "string" },
+        "published_by": { "type": "string" },
+        "published_at": { "type": "string" }
+      },
+      "required": ["category", "title", "summary", "source_name", "published_at"]
+    },
+    "AuditHistoryEntry": {
+      "title": "AuditHistoryEntry",
+      "description": "Immutable audit log for incident verifications and rescue status transitions.",
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["incident", "rescue"] },
+        "target_id": { "type": "string" },
+        "target_code": { "type": "string" },
+        "from_status": { "type": "string" },
+        "to_status": { "type": "string" },
+        "changed_by": { "type": "string" },
+        "changed_by_name": { "type": "string" },
+        "note": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["kind", "target_id", "to_status", "changed_by"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Multi-turn Gemini FloodConnect assistant message stored per user.",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "model": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["role", "text", "created_at"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profile documents."
+    },
+    "/users/{userId}/chat_messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "User-scoped multi-turn Gemini assistant chat history."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Admin role grant records."
+    },
+    "/incidents/{incidentId}": {
+      "schema": { "$ref": "#/entities/FloodIncident" },
+      "description": "Flood incident reports across East Godavari."
+    },
+    "/emergency_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/EmergencyRequest" },
+      "description": "Private emergency rescue requests."
+    },
+    "/shelters/{shelterId}": {
+      "schema": { "$ref": "#/entities/ReliefShelter" },
+      "description": "Relief shelter locations and capacities."
+    },
+    "/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/FloodAlert" },
+      "description": "Official and admin-issued flood alerts."
+    },
+    "/rescue_teams/{teamId}": {
+      "schema": { "$ref": "#/entities/RescueTeam" },
+      "description": "Rescue teams and readiness statuses."
+    },
+    "/volunteers/{volunteerId}": {
+      "schema": { "$ref": "#/entities/VolunteerRecord" },
+      "description": "Volunteer onboarding and availability records."
+    },
+    "/volunteer_tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/VolunteerTask" },
+      "description": "Field tasks assigned to volunteers."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/UserNotification" },
+      "description": "Per-user real-time notifications."
+    },
+    "/official_info/{entryId}": {
+      "schema": { "$ref": "#/entities/OfficialInfoEntry" },
+      "description": "Admin-published hydrological and weather bulletins."
+    },
+    "/audit_history/{entryId}": {
+      "schema": { "$ref": "#/entities/AuditHistoryEntry" },
+      "description": "Immutable verification and rescue progress logs."
+    }
+  }
+}
